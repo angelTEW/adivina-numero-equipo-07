@@ -12,7 +12,7 @@ DIFFICULTIES = {
 
 def get_player_name():
     name = input("¿Cómo te llamas? ").strip()
-    if name == "":
+    if not name:
         return "Jugador"
     return name
 
@@ -23,25 +23,35 @@ def choose_difficulty():
     print("2. Medio (1–50, 7 intentos)")
     print("3. Difícil (1–100, 6 intentos)")
 
-    choice = input("Opción: ").lower()
-    if choice in DIFFICULTIES:
-        return DIFFICULTIES[choice]
+    while True:
+        choice = input("Opción: ").strip().lower()
+        if choice in DIFFICULTIES:
+            return DIFFICULTIES[choice]
+        print("Opción inválida. Por favor elige 1, 2 o 3.")
 
-    print("Opción inválida. Se usará la dificultad Fácil.")
-    return DIFFICULTIES["2"]
 
+def read_valid_guess(minimum, maximum):
+    """Pide un número y repite la pregunta hasta que sea válido, sin gastar intentos."""
+    while True:
+        raw_guess = input(f"Escribe un número entre {minimum} y {maximum}: ").strip()
 
-def read_guess(minimum, maximum):
-    raw_guess = input(f"Escribe un número entre {minimum} y {maximum}: ").strip()
-    if raw_guess.isdigit():
-        return int(raw_guess)
+        # Evita que el programa truene con texto vacío o letras
+        try:
+            guess = int(raw_guess)
+        except ValueError:
+            print("Entrada inválida. Debe ser un número entero.")
+            continue
 
-    print("La entrada debe ser un número entero.")
-    return None
+        # Verifica que esté dentro del rango
+        if guess < minimum or guess > maximum:
+            print(f"El número debe estar entre {minimum} y {maximum}.")
+            continue
+
+        return guess
 
 
 def calculate_score(attempts_used, maximum_attempts, won):
-    if won is False:
+    if not won:
         return 0
 
     points = (maximum_attempts - attempts_used) * 10
@@ -53,7 +63,6 @@ def calculate_score(attempts_used, maximum_attempts, won):
 def play_round(settings):
     secret_number = random.randint(settings["minimum"], settings["maximum"])
     attempts_used = 0
-    guess = None
     won = False
 
     print(
@@ -61,23 +70,23 @@ def play_round(settings):
         f"{settings['maximum']}. Tienes {settings['attempts']} intentos."
     )
 
-    while attempts_used <= settings["attempts"] and won is False:
-        guess = read_guess(settings["minimum"], settings["maximum"])
+    # Ahora sí respeta exactamente el número de intentos anunciado (< en lugar de <=)
+    while attempts_used < settings["attempts"] and not won:
+        guess = read_valid_guess(settings["minimum"], settings["maximum"])
         attempts_used += 1
 
-        if guess is None:
-            continue
-        elif guess < settings["minimum"]:
-            print("El número es menor que el rango permitido.")
-        elif guess > settings["maximum"]:
-            print("El número es mayor que el rango permitido.")
-        elif guess < secret_number:
+        if guess < secret_number:
             print("Muy bajo.")
         elif guess > secret_number:
             print("Muy alto.")
         else:
             print("¡Correcto!")
             won = True
+
+        # Informa cuántos intentos le quedan si no ha ganado
+        if not won and attempts_used < settings["attempts"]:
+            remaining = settings["attempts"] - attempts_used
+            print(f"Te quedan {remaining} intentos.")
 
     if won:
         print(f"Adivinaste en {attempts_used} intentos.")
@@ -128,10 +137,9 @@ def play_game(scores):
 
 
 def ask_to_play_again():
-    answer = input("\n¿Quieres jugar otra vez? (s/n): ").lower()
-    if answer == "s" or answer == "si" or answer == "sí":
-        return True
-    return False
+    """Tolera espacios, mayúsculas, minúsculas y acentos."""
+    answer = input("\n¿Quieres jugar otra vez? (s/n): ").strip().lower()
+    return answer in ["s", "si", "sí", "yes", "y"]
 
 
 def main():
@@ -141,10 +149,11 @@ def main():
 
     while True:
         play_game(scores)
-        if ask_to_play_again() is False:
+        if not ask_to_play_again():
             break
 
-    print("\nGracias por jugar.")
+    print("\nGracias por jugar")
 
 
-main()
+if __name__ == "__main__":
+    main()
